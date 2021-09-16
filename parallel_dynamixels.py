@@ -66,7 +66,7 @@ class DynamixelDriver():
             getch()
             quit()
 
-    def servo_move(self, pos, v=True):
+    def servo_move(self, pos, verbose=True):
         # Write goal position
         for dxl_id in self.DXL_IDS:
             dxl_comm_result, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, dxl_id, self.ADDR_GOAL_POSITION, pos)
@@ -74,7 +74,7 @@ class DynamixelDriver():
                 print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
             elif dxl_error != 0:
                 print("%s" % self.packetHandler.getRxPacketError(dxl_error))
-        if v:
+        if verbose:
             # Read present position
             while 1:
                 for dxl_id in self.DXL_IDS:
@@ -89,6 +89,23 @@ class DynamixelDriver():
                 if abs(dxl_goal_position[index] - dxl_present_position) < self.DXL_MOVING_STATUS_THRESHOLD:
                     break
 
+
+
+    def test(self):
+        index = 0
+        dxl_goal_position = [self.DXL_MINIMUM_POSITION_VALUE, self.DXL_MAXIMUM_POSITION_VALUE]         # Goal position
+        # Test Motor Movements
+        while 1:
+            print("Press any key to continue! (or press ESC to quit!)")
+            if self.getch() == chr(0x1b):
+                break
+
+            self.servo_move(dxl_goal_position[index], verbose=False)
+            # Change goal position
+            if index == 0:
+                index = 1
+            else:
+                index = 0
 
     def __del__(self):
         # Disable Dynamixel Torque
@@ -105,23 +122,10 @@ class DynamixelDriver():
 
 
 if __name__ == "__main__":
-    index = 0
     robot = DynamixelDriver()
-    dxl_goal_position = [robot.DXL_MINIMUM_POSITION_VALUE, robot.DXL_MAXIMUM_POSITION_VALUE]         # Goal position
+    robot.test()
 
 
-    # Test Motor Movements
-    while 1:
-        print("Press any key to continue! (or press ESC to quit!)")
-        if robot.getch() == chr(0x1b):
-            break
-
-        robot.servo_move(dxl_goal_position[index])
-        # Change goal position
-        if index == 0:
-            index = 1
-        else:
-            index = 0
 
 
 
