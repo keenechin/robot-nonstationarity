@@ -1,20 +1,20 @@
-from DeltaArray import DeltaArray
+from actuonix_driver import LinearDriver
 import numpy as np
 from time import sleep
 
-da = DeltaArray(f"/dev/ttyACM0")
+da = LinearDriver(f"/dev/ttyACM0")
 
 # PRESET POSITIONS
 p = np.ones((8, 12)) * 0.0012
-p[0, 3:6] = np.array([0.01, 0.01, 0.01])
-p[1, 3:6] = np.array([0.02, 0.01, 0.01])
-p[2, 3:6] = np.array([0.01, 0.02, 0.01])
-p[3, 3:6] = np.array([0.01, 0.01, 0.02])
+p[0, 3:7] = np.array([0.01, 0.01, 0.01, 0.01])
+p[1, 3:7] = np.array([0.01, 0.02, 0.02, 0.02])
+p[2, 3:7] = np.array([0.01, 0.02, 0.03, 0.03])
+p[3, 3:7] = np.array([0.01, 0.02, 0.03, 0.04])
 
-p[4, 3:6] = np.array([0.02, 0.02, 0.02])
-p[5, 3:6] = np.array([0.03, 0.02, 0.02])
-p[6, 3:6] = np.array([0.02, 0.03, 0.02])
-p[7, 3:6] = np.array([0.02, 0.02, 0.03])
+p[4, 3:7] = np.array([0.01, 0.02, 0.03, 0.04])
+p[5, 3:7] = np.array([0.01, 0.02, 0.03, 0.03])
+p[6, 3:7] = np.array([0.01, 0.02, 0.02, 0.02])
+p[7, 3:7] = np.array([0.01, 0.01, 0.01, 0.01])
 
 
 def print_posn():
