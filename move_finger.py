@@ -18,7 +18,6 @@ p[7, 3:7] = np.array([0.01, 0.01, 0.01, 0.01])
 
 
 def print_posn():
-    da.wait_until_done_moving()
     posn = da.get_joint_positions()
     print(posn[3:6])  # Motors 4-6
 
@@ -34,7 +33,6 @@ for i in range(0, 8): # LOOP THROUGH ALL PRESET POSITIONS
     duration = [1.0]
     print(f"i:{i}, {p[i,:]}")
     da.move_joint_position(p[i, :].reshape(1,12), duration)
-    da.wait_until_done_moving()
     sleep(1)
     # print_posn()
 

@@ -6,7 +6,7 @@ import math
 import numpy as np
 
 class LinearDriver:
-    def __init__(self, port):
+    def __init__(self, port="/dev/ttyACM0"):
 
         self.ser = serial.Serial(port, 57600)  # open serial port
 
@@ -19,6 +19,7 @@ class LinearDriver:
 
     def reset(self):
         self.ser.write(b'<r>')
+        self.wait_until_done_moving()
     def stop(self):
         self.ser.write(b'<s,1>')
 
@@ -41,6 +42,7 @@ class LinearDriver:
         for i in range(num_messages):
             self.ser.write(msg[i*60:(i+1)*60].encode())
             time.sleep(0.1)
+        self.wait_until_done_moving()
 
     def move_joint_velocity(self, desired_joint_velocities, durations):
 
