@@ -5,7 +5,7 @@ import dynamixel_sdk as dmx
 # Designed to control dynamixel XC-430-150-T servos from linux using U2D2
 
 class DynamixelDriver():
-    def __init__(self, num_servos=1):
+    def __init__(self, devname = '/dev/ttyUSB0', num_servos=1):
         self.fd = sys.stdin.fileno()
         self.old_settings = termios.tcgetattr(self.fd)
 
@@ -21,7 +21,7 @@ class DynamixelDriver():
         # https://emanual.robotis.com/docs/en/dxl/protocol2/
         PROTOCOL_VERSION            = 2.0
 
-        DEVICENAME                  = '/dev/ttyUSB0'
+        DEVICENAME                  = devname
         self.num_servos = num_servos
         self.DXL_IDS                     = list(range(1, num_servos+1))
         self.TORQUE_ENABLE               = 1
@@ -123,7 +123,7 @@ class DynamixelDriver():
 
 
 if __name__ == "__main__":
-    robot = DynamixelDriver(2)
+    robot = DynamixelDriver(num_servos=2)
     robot.test()
 
 
