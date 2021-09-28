@@ -17,7 +17,7 @@ class FiveBar():
         self.theta2_max = 0.625
         self.reset()
         time.sleep(0.5)
-    
+
     def reset(self):
         self.linear.move_joint_position(self.linear_zeros, 1.0)
         self.move(0.5, 0.5)
@@ -51,6 +51,7 @@ class FiveBar():
             robot.move(0.4, 0.6)
             robot.move(0.4, 0.4)
             robot.move(0.6, 0.4)
+
 
 if __name__ == "__main__":
     robot = FiveBar()

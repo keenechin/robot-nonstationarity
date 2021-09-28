@@ -1,5 +1,6 @@
-import os
-import sys, tty, termios
+import sys
+import tty
+import termios
 import dynamixel_sdk as dmx
 
 
@@ -9,24 +10,25 @@ class DynamixelDriver():
         self.fd = sys.stdin.fileno()
         self.old_settings = termios.tcgetattr(self.fd)
 
-
-        self.ADDR_TORQUE_ENABLE          = 64
-        self.ADDR_GOAL_POSITION          = 116
-        self.ADDR_PRESENT_POSITION       = 132
-        self.DXL_MINIMUM_POSITION_VALUE  = 0         # Refer to the Minimum Position Limit of product eManual
-        self.DXL_MAXIMUM_POSITION_VALUE  = 4095      # Refer to the Maximum Position Limit of product eManual
+        self.ADDR_TORQUE_ENABLE = 64
+        self.ADDR_GOAL_POSITION = 116
+        self.ADDR_PRESENT_POSITION = 132
+        # Refer to the Minimum Position Limit of product eManual
+        self.DXL_MINIMUM_POSITION_VALUE = 0
+        # Refer to the Maximum Position Limit of product eManual
+        self.DXL_MAXIMUM_POSITION_VALUE = 4095
         self.DXL_RANGE = self.DXL_MAXIMUM_POSITION_VALUE-self.DXL_MINIMUM_POSITION_VALUE
-        self.BAUDRATE                    = 57600
+        self.BAUDRATE = 57600
 
         # DYNAMIXEL Protocol Version (1.0 / 2.0)
         # https://emanual.robotis.com/docs/en/dxl/protocol2/
-        PROTOCOL_VERSION            = 2.0
+        PROTOCOL_VERSION = 2.0
 
-        DEVICENAME                  = devname
+        DEVICENAME = devname
         self.num_servos = num_servos
-        self.DXL_IDS                     = list(range(1, num_servos+1))
-        self.TORQUE_ENABLE               = 1
-        self.TORQUE_DISABLE              = 0
+        self.DXL_IDS = list(range(1, num_servos+1))
+        self.TORQUE_ENABLE = 1
+        self.TORQUE_DISABLE = 0
         self.DXL_MOVING_STATUS_THRESHOLD = 20
         self.portHandler = dmx.PortHandler(DEVICENAME)
         self.packetHandler = dmx.PacketHandler(PROTOCOL_VERSION)
@@ -34,7 +36,8 @@ class DynamixelDriver():
 
         # Enable Dynamixel Torque
         for dxl_id in self.DXL_IDS:
-            dxl_comm_result, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, dxl_id, self.ADDR_TORQUE_ENABLE, self.TORQUE_ENABLE)
+            dxl_comm_result, dxl_error = self.packetHandler.write1ByteTxRx(
+                self.portHandler, dxl_id, self.ADDR_TORQUE_ENABLE, self.TORQUE_ENABLE)
             if dxl_comm_result != dmx.COMM_SUCCESS:
                 print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
             elif dxl_error != 0:
@@ -69,26 +72,34 @@ class DynamixelDriver():
             quit()
 
     def servo_move(self, pos, verbose=True):
-        # Write goal position 
+        # Write goal position
         for i, dxl_id in enumerate(self.DXL_IDS):
-            dxl_comm_result, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, dxl_id, self.ADDR_GOAL_POSITION, pos[i])
+            dxl_comm_result, dxl_error = self.packetHandler.write4ByteTxRx(
+                self.portHandler, dxl_id, self.ADDR_GOAL_POSITION, pos[i])
             if dxl_comm_result != dmx.COMM_SUCCESS:
                 print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
             elif dxl_error != 0:
                 print("%s" % self.packetHandler.getRxPacketError(dxl_error))
         while True:
             for i, dxl_id in enumerate(self.DXL_IDS):
-                dxl_present_position, dxl_comm_result, dxl_error = self.packetHandler.read4ByteTxRx(self.portHandler, dxl_id, self.ADDR_PRESENT_POSITION)
+                dxl_comm_result, dxl_error, dxl_present_position = self.get_pos(dxl_id)
                 if dxl_comm_result != dmx.COMM_SUCCESS and verbose:
                     print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
                 elif dxl_error != 0 and verbose:
                     print("%s" % self.packetHandler.getRxPacketError(dxl_error))
 
                 if verbose:
-                    print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (dxl_id, pos[i], dxl_present_position))
+                    print("[ID:%03d] GoalPos:%03d  PresPos:%03d" %
+                          (dxl_id, pos[i], dxl_present_position))
 
             if abs(pos[i] - dxl_present_position) < self.DXL_MOVING_STATUS_THRESHOLD:
                 break
+
+    def get_pos(self, dxl_id):
+        dxl_present_position, dxl_comm_result, dxl_error = self.packetHandler.read4ByteTxRx(
+                    self.portHandler, dxl_id, self.ADDR_PRESENT_POSITION)
+            
+        return dxl_comm_result, dxl_error, dxl_present_position
 
     def test(self):
         index = 0
@@ -110,7 +121,8 @@ class DynamixelDriver():
     def __del__(self):
         # Disable Dynamixel Torque
         for dxl_id in self.DXL_IDS:
-            dxl_comm_result, dxl_error = self.packetHandler.write1ByteTxRx(self.portHandler, dxl_id, self.ADDR_TORQUE_ENABLE, self.TORQUE_DISABLE)
+            dxl_comm_result, dxl_error = self.packetHandler.write1ByteTxRx(
+                self.portHandler, dxl_id, self.ADDR_TORQUE_ENABLE, self.TORQUE_DISABLE)
             if dxl_comm_result != dmx.COMM_SUCCESS:
                 print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
             elif dxl_error != 0:

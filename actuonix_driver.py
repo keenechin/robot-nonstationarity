@@ -2,16 +2,18 @@
 
 import time
 import serial
-import math
 import numpy as np
+
 
 class LinearDriver:
     def __init__(self, port="/dev/ttyACM0"):
 
         self.ser = serial.Serial(port, 57600)  # open serial port
 
-        self.current_joint_positions = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        self.current_joint_velocities = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.current_joint_positions = [
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.current_joint_velocities = [
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
         self.minimum_joint_position = 0.0015
         self.maximum_joint_position = 0.0988
@@ -20,6 +22,7 @@ class LinearDriver:
     def reset(self):
         self.ser.write(b'<r>')
         self.wait_until_done_moving()
+
     def stop(self):
         self.ser.write(b'<s,1>')
 
@@ -28,9 +31,11 @@ class LinearDriver:
 
     def move_joint_position(self, desired_joint_positions, durations):
 
-        np.clip(desired_joint_positions,self.minimum_joint_position,self.maximum_joint_position)
+        np.clip(desired_joint_positions, self.minimum_joint_position,
+                self.maximum_joint_position)
 
-        combined_array = np.hstack((np.array(durations).reshape(-1,1),np.array(desired_joint_positions)))
+        combined_array = np.hstack(
+            (np.array(durations).reshape(-1, 1), np.array(desired_joint_positions)))
         num_trajectory_points = combined_array.shape[0]
         compressed_array = np.float32(combined_array.flatten())
         msg = '<p,' + str(num_trajectory_points) + ','
@@ -46,7 +51,8 @@ class LinearDriver:
 
     def move_joint_velocity(self, desired_joint_velocities, durations):
 
-        combined_array = np.hstack((np.array(durations).reshape(-1,1),np.array(desired_joint_velocities)))
+        combined_array = np.hstack(
+            (np.array(durations).reshape(-1, 1), np.array(desired_joint_velocities)))
         num_trajectory_points = combined_array.shape[0]
         compressed_array = np.float32(combined_array.flatten())
         msg = '<v,' + str(num_trajectory_points) + ','
@@ -76,8 +82,7 @@ class LinearDriver:
                 elif stringline[0] == 'd':
                     return True
             except:
-                pass # Readline did not return a valid string.
-
+                pass  # Readline did not return a valid string.
 
     def get_joint_positions(self):
         self.ser.flushInput()
@@ -89,7 +94,7 @@ class LinearDriver:
         self.update_joint_positions_and_velocities()
         return self.current_joint_velocities
 
-    def wait_until_done_moving(self, timeout = 6):
+    def wait_until_done_moving(self, timeout=6):
         done_moving = False
         start_time = time.time()
         elapsed_time = 0.0
@@ -97,4 +102,3 @@ class LinearDriver:
         while not done_moving and elapsed_time < timeout:
             done_moving = self.update_joint_positions_and_velocities()
             elapsed_time = time.time() - start_time
-
