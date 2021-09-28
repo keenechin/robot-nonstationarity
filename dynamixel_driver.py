@@ -2,10 +2,10 @@ import os
 import sys, tty, termios
 import dynamixel_sdk as dmx
 
-# Designed to control dynamixel XC-430-150-T servos from linux using U2D2
 
 class DynamixelDriver():
-    def __init__(self, devname = '/dev/ttyUSB0', num_servos=1):
+    # Designed to control dynamixel XC-430-150-T servos from linux using U2D2
+    def __init__(self, devname='/dev/ttyUSB0', num_servos=1):
         self.fd = sys.stdin.fileno()
         self.old_settings = termios.tcgetattr(self.fd)
 
@@ -15,6 +15,7 @@ class DynamixelDriver():
         self.ADDR_PRESENT_POSITION       = 132
         self.DXL_MINIMUM_POSITION_VALUE  = 0         # Refer to the Minimum Position Limit of product eManual
         self.DXL_MAXIMUM_POSITION_VALUE  = 4095      # Refer to the Maximum Position Limit of product eManual
+        self.DXL_RANGE = self.DXL_MAXIMUM_POSITION_VALUE-self.DXL_MINIMUM_POSITION_VALUE
         self.BAUDRATE                    = 57600
 
         # DYNAMIXEL Protocol Version (1.0 / 2.0)
@@ -64,11 +65,11 @@ class DynamixelDriver():
         else:
             print("Failed to change the baudrate")
             print("Press any key to terminate...")
-            getch()
+            self.getch()
             quit()
 
     def servo_move(self, pos, verbose=True):
-        # Write goal position
+        # Write goal position 
         for i, dxl_id in enumerate(self.DXL_IDS):
             dxl_comm_result, dxl_error = self.packetHandler.write4ByteTxRx(self.portHandler, dxl_id, self.ADDR_GOAL_POSITION, pos[i])
             if dxl_comm_result != dmx.COMM_SUCCESS:
@@ -79,17 +80,15 @@ class DynamixelDriver():
             for i, dxl_id in enumerate(self.DXL_IDS):
                 dxl_present_position, dxl_comm_result, dxl_error = self.packetHandler.read4ByteTxRx(self.portHandler, dxl_id, self.ADDR_PRESENT_POSITION)
                 if dxl_comm_result != dmx.COMM_SUCCESS and verbose:
-                    print("%s" % packetHandler.getTxRxResult(dxl_comm_result))
+                    print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
                 elif dxl_error != 0 and verbose:
-                    print("%s" % packetHandler.getRxPacketError(dxl_error))
+                    print("%s" % self.packetHandler.getRxPacketError(dxl_error))
 
                 if verbose:
                     print("[ID:%03d] GoalPos:%03d  PresPos:%03d" % (dxl_id, pos[i], dxl_present_position))
 
             if abs(pos[i] - dxl_present_position) < self.DXL_MOVING_STATUS_THRESHOLD:
                 break
-
-
 
     def test(self):
         index = 0
@@ -121,14 +120,6 @@ class DynamixelDriver():
         self.portHandler.closePort()
 
 
-
 if __name__ == "__main__":
     robot = DynamixelDriver(num_servos=2)
     robot.test()
-
-
-
-
-
-
-
