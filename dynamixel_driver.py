@@ -71,7 +71,7 @@ class DynamixelDriver():
             self.getch()
             quit()
 
-    def servo_move(self, pos, verbose=True):
+    def servo_move(self, pos, verbose=False):
         # Write goal position
         for i, dxl_id in enumerate(self.DXL_IDS):
             dxl_comm_result, dxl_error = self.packetHandler.write4ByteTxRx(

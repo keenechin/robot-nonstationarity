@@ -11,16 +11,19 @@ class FiveBar():
         self.linear_min = 0.01
         self.linear_zeros = np.ones((1, 12))*self.linear_min
         self.linear_max = 0.0375
-        self.theta1_min = 0.375
-        self.theta1_max = 0.625
-        self.theta2_min = 0.375
-        self.theta2_max = 0.625
+        self.theta_range = 0.25
+        self.theta1_mid = 0.5+0.06
+        self.theta2_mid = 0.5-0.06
+        self.theta1_min = self.theta1_mid - self.theta_range/2
+        self.theta1_max = self.theta1_mid + self.theta_range/2
+        self.theta2_min = self.theta2_mid - self.theta_range/2
+        self.theta2_max = self.theta2_mid + self.theta_range/2
         self.reset()
-        time.sleep(0.1)
     
     def reset(self):
         self.linear.move_joint_position(self.linear_zeros, 1.0)
-        self.move_abs(0.5, 0.5)
+        self.move_abs(self.theta1_mid, self.theta2_mid)
+        time.sleep(0.1)
 
     def drift(self, pos):
         assert pos >= self.linear_min
@@ -32,12 +35,12 @@ class FiveBar():
         # self.linear.wait_until_done_moving()
 
     def move_abs(self, pos1, pos2):
-        print(f"{pos1},{pos2}")
+        print(f"Raw val: {pos1:.3f},{pos2:.3f}")
         pos1 = max(pos1, self.theta1_min)
         pos1 = min(pos1, self.theta1_max)
         pos2 = max(pos2, self.theta2_min)
         pos2 = min(pos2, self.theta2_max)
-        print(f"{pos1},{pos2}")
+        print(f"Bounded: {pos1:.3f},{pos2:.3f}")
         assert pos1 >= self.theta1_min
         assert pos2 >= self.theta2_min
         assert pos1 <= self.theta1_max
@@ -58,44 +61,38 @@ class FiveBar():
         curr2 = (curr2 - self.servos.DXL_MINIMUM_POSITION_VALUE)/self.servos.DXL_RANGE
         return curr1, curr2
 
-    def primitive(self, idx):
+    def primitive(self, idx, mag=0.1):
         if idx == 1:
-            self.move_abs(0.45, 0.55)
-            self.move_abs(0.45, 0.45)
-            self.move_abs(0.55, 0.45)
-            self.move_abs(0.55, 0.55)
+            self.move_delta(-mag, -mag)
         if idx == 2:
-            self.move_abs(0.6, 0.6)
-            self.move_abs(0.4, 0.6)
-            self.move_abs(0.4, 0.4)
-            self.move_abs(0.6, 0.4)
-        
+            self.move_delta(-mag, 0.0)
         if idx == 3:
-            self.move_delta(-0.1, 0)
-            self.move_delta(0.0, -0.1)
-            self.move_delta(0.1, 0.0)
-            self.move_delta(0, 0.1)
-            
+            self.move_delta(-mag, mag)
         if idx == 4:
-            self.move_delta(0.1, 0.1)
-            self.move_delta(-0.1, 0.0)
-            self.move_delta(0.0, -0.1)
-            self.move_delta(0.1, 0.0)
+            self.move_delta(0.0, -mag)
+        if idx == 5:
+            self.move_delta(0.0, 0.0)
+        if idx == 6:
+            self.move_delta(0.0, mag)
+        if idx == 7:
+            self.move_delta(mag, -mag)
+        if idx == 8:
+            self.move_delta(mag, 0.0)
+        if idx == 9:
+            self.move_delta(mag, mag)
+
+    def trajectory(self, primitive_list):
+        for idx in primitive_list:
+            self.primitive(idx)
+
+    def test_motion(self):
+        self.drift(robot.linear_max)
+        self.trajectory([1, 9, 2, 8, 3, 7, 4, 6, 5])
+        self.drift(robot.linear_min)
+        self.trajectory([1, 9, 2, 8, 3, 7, 4, 6, 5])
+        self.reset()
 
 
 if __name__ == "__main__":
     robot = FiveBar()
-    # robot.primitive(1)
-    # robot.drift(robot.linear_max)
-    # robot.primitive(2)
-    # robot.drift(robot.linear_min)
-    # robot.primitive(1)
-    # robot.primitive(2)
-    # robot.reset()
-    robot.primitive(3)
-    robot.drift(robot.linear_max)
-    robot.primitive(4)
-    robot.drift(robot.linear_min)
-    robot.primitive(3)
-    robot.primitive(4)
-    robot.reset()
+    robot.test_motion()
