@@ -17,7 +17,7 @@ class LinearDriver:
 
         self.minimum_joint_position = 0.0015
         self.maximum_joint_position = 0.0988
-        time.sleep(1.0)
+        time.sleep(0.1)
 
     def reset(self):
         self.ser.write(b'<r>')

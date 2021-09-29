@@ -101,6 +101,7 @@ class DynamixelDriver():
             
         return dxl_comm_result, dxl_error, dxl_present_position
 
+
     def test(self):
         index = 0
         dxl_goal_position = [[self.DXL_MINIMUM_POSITION_VALUE for i in range(self.num_servos)],
