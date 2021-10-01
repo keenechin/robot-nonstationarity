@@ -41,8 +41,9 @@ class FiveBar():
         time.sleep(0.01)
         # self.linear.wait_until_done_moving()
 
-    def move_abs(self, pos1, pos2, err_thresh=0.1):
-        print(f"Raw val: {pos1:.3f},{pos2:.3f}")
+    def move_abs(self, pos1, pos2, err_thresh=0.1, verbose=False):
+        if verbose:
+            print(f"Raw val: {pos1:.3f},{pos2:.3f}")
         pos1 = np.clip(pos1, self.theta1_min, self.theta1_max)
         pos2 = np.clip(pos2, self.theta2_min, self.theta2_max)
         mean = (pos1+pos2)/2
@@ -50,7 +51,8 @@ class FiveBar():
                        2, mean+self.theta_diff_max/2)
         pos2 = np.clip(pos2, mean-self.theta_diff_max /
                        2, mean+self.theta_diff_max/2)
-        print(f"Bounded: {pos1:.3f},{pos2:.3f}\n")
+        if verbose:
+            print(f"Bounded: {pos1:.3f},{pos2:.3f}\n")
 
         self.servos.set_des_pos(self.servos.motor_id, [pos1, pos2])
 
@@ -63,12 +65,12 @@ class FiveBar():
             err2 = np.abs(curr[1]-pos2)
             time.sleep(0.001)
 
-    def move_delta(self, delta1, delta2):
+    def move_delta(self, delta1, delta2, verbose=False):
         curr = self.get_pos()
         # new_pos1 = curr1 + delta1
         # new_pos2 = curr2 + delta2
 
-        self.move_abs(curr[0]+delta1, curr[1]+delta2)
+        self.move_abs(curr[0]+delta1, curr[1]+delta2, verbose=verbose)
 
     def get_pos(self):
         curr = self.servos.get_pos(self.servos.motor_id)
@@ -86,7 +88,7 @@ class FiveBar():
                       [mag, 0.0],
                       [mag, mag]]
 
-        self.move_delta(*primitives[id])
+        self.move_delta(*primitives[id], verbose=True)
 
     def trajectory(self, primitive_list):
         for idx in primitive_list:
@@ -94,11 +96,15 @@ class FiveBar():
 
     def test_motion(self):
         for j in range(10):
-            for i in range(100):
-                n = np.random.randint(0, 9)
-                self.primitive(n)
+            for i in range(10):
+                id = np.random.randint(0, 9)
+                mag = np.random.random_sample()
+                self.primitive(id, mag)
             self.drift(np.random.random_sample()*self.linear_range + self.linear_min)
             self.move_abs(self.theta1_mid, self.theta2_mid)
+        self.reset()
+    
+    def __del__(self):
         self.reset()
 
 

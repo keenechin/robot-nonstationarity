@@ -17,7 +17,7 @@ class LinearDriver:
 
         self.minimum_joint_position = 0.0015
         self.maximum_joint_position = 0.0988
-        time.sleep(0.1)
+        time.sleep(0.01)
 
     def reset(self):
         self.ser.write(b'<r>')
@@ -46,7 +46,7 @@ class LinearDriver:
 
         for i in range(num_messages):
             self.ser.write(msg[i*60:(i+1)*60].encode())
-            time.sleep(0.1)
+            time.sleep(0.01)
         self.wait_until_done_moving()
 
     def move_joint_velocity(self, desired_joint_velocities, durations):
@@ -63,7 +63,7 @@ class LinearDriver:
 
         for i in range(num_messages):
             self.ser.write(msg[i*60:(i+1)*60].encode())
-            time.sleep(0.1)
+            time.sleep(0.01)
 
     def close(self):
         self.ser.close()
@@ -104,4 +104,5 @@ class LinearDriver:
             elapsed_time = time.time() - start_time
 
     def __del__(self):
+        self.reset()
         self.close()
