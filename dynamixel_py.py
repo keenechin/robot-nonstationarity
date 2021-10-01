@@ -73,9 +73,9 @@ VEL_SCALE = 0.229 * 2 * np.pi / 60  # (=0.229rpm)
 TORQUE_ENABLE = 1                             # Value for enabling the torque
 TORQUE_DISABLE = 0                             # Value for disabling the torque
 # Dynamixel will rotate between this value
-DXL_MINIMUM_POSITION_VALUE = 100
+DXL_MINIMUM_POSITION_VALUE = 0+100
 # and this value (note that the Dynamixel would not move when the position value is out of movable range. Check e-manual about the range of the Dynamixel you use.)
-DXL_MAXIMUM_POSITION_VALUE = 4000
+DXL_MAXIMUM_POSITION_VALUE = 4096-100
 # Dynamixel moving status threshold
 DXL_MOVING_STATUS_THRESHOLD = 15
 
