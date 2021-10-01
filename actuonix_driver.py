@@ -102,3 +102,6 @@ class LinearDriver:
         while not done_moving and elapsed_time < timeout:
             done_moving = self.update_joint_positions_and_velocities()
             elapsed_time = time.time() - start_time
+
+    def __del__(self):
+        self.close()
