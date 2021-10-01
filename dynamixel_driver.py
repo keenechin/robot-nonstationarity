@@ -82,7 +82,8 @@ class DynamixelDriver():
                 print("%s" % self.packetHandler.getRxPacketError(dxl_error))
         while True:
             for i, dxl_id in enumerate(self.DXL_IDS):
-                dxl_comm_result, dxl_error, dxl_present_position = self.get_pos(dxl_id)
+                dxl_comm_result, dxl_error, dxl_present_position = self.get_pos(
+                    dxl_id)
                 if dxl_comm_result != dmx.COMM_SUCCESS and verbose:
                     print("%s" % self.packetHandler.getTxRxResult(dxl_comm_result))
                 elif dxl_error != 0 and verbose:
@@ -97,10 +98,9 @@ class DynamixelDriver():
 
     def get_pos(self, dxl_id):
         dxl_present_position, dxl_comm_result, dxl_error = self.packetHandler.read4ByteTxRx(
-                    self.portHandler, dxl_id, self.ADDR_PRESENT_POSITION)
-            
-        return dxl_comm_result, dxl_error, dxl_present_position
+            self.portHandler, dxl_id, self.ADDR_PRESENT_POSITION)
 
+        return dxl_comm_result, dxl_error, dxl_present_position
 
     def test(self):
         index = 0
