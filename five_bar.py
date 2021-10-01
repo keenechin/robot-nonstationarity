@@ -87,9 +87,13 @@ class FiveBar():
 
     def test_motion(self):
         self.drift(robot.linear_max)
-        self.trajectory([1, 9, 2, 8, 3, 7, 4, 6, 5])
+        # self.trajectory([1, 9, 2, 8, 3, 7, 4, 6, 5])
+        self.trajectory([2, 8, 8, 2, 2, 8])
+        self.trajectory([4, 6, 6, 4, 4, 6])
         self.drift(robot.linear_min)
-        self.trajectory([1, 9, 2, 8, 3, 7, 4, 6, 5])
+        # self.trajectory([1, 3, 9, 7]*2)
+        self.trajectory([2, 8, 8, 2, 2, 8])
+        self.trajectory([4, 6, 6, 4, 4, 6])
         self.reset()
 
 

@@ -18,7 +18,7 @@ class DynamixelDriver():
         # Refer to the Maximum Position Limit of product eManual
         self.DXL_MAXIMUM_POSITION_VALUE = 4095
         self.DXL_RANGE = self.DXL_MAXIMUM_POSITION_VALUE-self.DXL_MINIMUM_POSITION_VALUE
-        self.BAUDRATE = 57600
+        self.BAUDRATE = 1000000
 
         # DYNAMIXEL Protocol Version (1.0 / 2.0)
         # https://emanual.robotis.com/docs/en/dxl/protocol2/
