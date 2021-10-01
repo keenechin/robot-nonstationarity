@@ -2,16 +2,16 @@ from actuonix_driver import LinearDriver
 from dynamixel_driver import dxl
 import numpy as np
 import time
-import click
 
 
 class FiveBar():
-    def __init__(self, ids, motor_type, device, baudrate, protocol):
+    def __init__(self, ids=[1, 2], motor_type="X",
+                 device="/dev/ttyUSB0", baudrate=int(1e6), protocol=2):
         self.servos = dxl(motor_id=ids, motor_type=motor_type,
                           devicename=device, baudrate=baudrate, protocol=protocol)
         self.servos.open_port()
         self.theta_range = 2*np.pi*(0.5)
-        self.theta_diff_max = np.pi/6
+        self.theta_diff_max = np.pi/8
         self.theta1_mid = 2*np.pi*(0.5+0.06)
         self.theta2_mid = 2*np.pi*(0.5-0.06)
         self.theta1_min = self.theta1_mid - self.theta_range/2
@@ -23,7 +23,7 @@ class FiveBar():
         self.linear_min = 0.01
         self.linear_zeros = np.ones((1, 12))*self.linear_min
         self.linear_max = 0.0375
-        self.linear_range = 0.0375-0.01
+        self.linear_range = self.linear_max-self.linear_min
 
         self.reset()
 
@@ -76,7 +76,7 @@ class FiveBar():
         curr = self.servos.get_pos(self.servos.motor_id)
         return curr
 
-    def primitive(self, id, mag=0.2*np.pi):
+    def primitive(self, id, mag=0.2*np.pi, verbose=False):
 
         primitives = [[-mag, -mag],
                       [-mag, 0.0],
@@ -88,15 +88,15 @@ class FiveBar():
                       [mag, 0.0],
                       [mag, mag]]
 
-        self.move_delta(*primitives[id], verbose=True)
+        self.move_delta(*primitives[id], verbose=verbose)
 
     def trajectory(self, primitive_list):
         for idx in primitive_list:
             self.primitive(idx)
 
     def test_motion(self):
-        for j in range(10):
-            for i in range(10):
+        for j in range(3):
+            for i in range(50):
                 id = np.random.randint(0, 9)
                 mag = np.random.random_sample()
                 self.primitive(id, mag)
@@ -105,24 +105,12 @@ class FiveBar():
         self.reset()
     
     def __del__(self):
+        print("FiveBar shutting down.")
         self.reset()
 
 
-DESC = '''
-USAGE:
-python five_bar.py --motor_id "[1,2]" --motor_type "X" --baudrate 1000000 --device /dev/ttyUSB0 --protocol 2
-'''
-
-
-@click.command(help=DESC)
-@click.option('--motor_id', '-i', type=str, help='motor ids', default="[1, 2]")
-@click.option('--motor_type', '-t', type=str, help='motor type', default="X")
-@click.option('--baudrate', '-b', type=int, help='port baud rate', default=1000000)
-@click.option('--device', '-n', type=str, help='port name', default="/dev/ttyUSB0")
-@click.option('--protocol', '-p', type=int, help='communication protocol 1/2', default=2)
-def main(motor_id, motor_type, device, baudrate, protocol):
-    ids = eval(motor_id)
-    robot = FiveBar(ids, motor_type, device, baudrate, protocol)
+def main():
+    robot = FiveBar()
     robot.test_motion()
 
 
