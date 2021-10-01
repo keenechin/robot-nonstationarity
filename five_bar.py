@@ -1,5 +1,5 @@
 from actuonix_driver import LinearDriver
-from dynamixel_py import dxl
+from dynamixel_driver import dxl
 import numpy as np
 import time
 import click

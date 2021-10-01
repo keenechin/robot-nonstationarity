@@ -2,7 +2,7 @@ import click
 import scipy.io as sio
 import numpy as np
 import time as t
-from dynamixel_py import *
+from dynamixel_driver import *
 DESC = """
 Checks basic behaviors of the motors by subjecting them to chirp and step signals
 USAGE: 
