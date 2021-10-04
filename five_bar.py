@@ -24,6 +24,7 @@ class FiveBar():
         self.linear_zeros = np.ones((1, 12))*self.linear_min
         self.linear_max = 0.0375
         self.linear_range = self.linear_max-self.linear_min
+        self.linear_state = self.linear_min
 
         self.reset()
 
@@ -37,9 +38,12 @@ class FiveBar():
         assert pos <= self.linear_max
         p = self.linear_zeros
         p[0, 3:7] = pos
+        self.linear_state = pos
         self.linear.move_joint_position(p, 1.0)
         time.sleep(0.01)
-        # self.linear.wait_until_done_moving()
+
+    def get_state(self):
+        return self.linear_state
 
     def move_abs(self, pos1, pos2, err_thresh=0.1, verbose=False):
         if verbose:
