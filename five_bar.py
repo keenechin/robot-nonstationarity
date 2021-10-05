@@ -10,6 +10,8 @@ class FiveBar():
         self.servos = dxl(motor_id=ids, motor_type=motor_type,
                           devicename=device, baudrate=baudrate, protocol=protocol)
         self.servos.open_port()
+        self.linear = LinearDriver()
+
         self.theta_range = 2*np.pi*(0.5)
         self.theta_diff_max = np.pi/8
         self.theta1_mid = 2*np.pi*(0.5+0.06)
@@ -19,7 +21,6 @@ class FiveBar():
         self.theta2_min = self.theta2_mid - self.theta_range/2
         self.theta2_max = self.theta2_mid + self.theta_range/2
 
-        self.linear = LinearDriver()
         self.linear_min = 0.01
         self.linear_zeros = np.ones((1, 12))*self.linear_min
         self.linear_max = 0.0375
@@ -99,12 +100,13 @@ class FiveBar():
             self.primitive(idx)
 
     def test_motion(self):
-        for j in range(3):
-            for i in range(50):
+        num_drifts = 5
+        for j in range(num_drifts):
+            for i in range(30):
                 id = np.random.randint(0, 9)
                 mag = np.random.random_sample()
                 self.primitive(id, mag)
-            self.drift(np.random.random_sample()*self.linear_range + self.linear_min)
+            self.drift(self.linear_range * (j / (num_drifts - 1)) + self.linear_min)
             self.move_abs(self.theta1_mid, self.theta2_mid)
         self.reset()
     
