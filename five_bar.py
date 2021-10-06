@@ -32,7 +32,7 @@ class FiveBar():
     def reset(self):
         self.linear.move_joint_position(self.linear_zeros, 1.0)
         self.move_abs(self.theta1_mid, self.theta2_mid)
-        time.sleep(0.1)
+        time.sleep(1)
 
     def drift(self, pos):
         assert pos >= self.linear_min
@@ -106,10 +106,11 @@ class FiveBar():
                 id = np.random.randint(0, 9)
                 mag = np.random.random_sample()
                 self.primitive(id, mag)
-            self.drift(self.linear_range * (j / (num_drifts - 1)) + self.linear_min)
+            self.drift(self.linear_range *
+                       (j / (num_drifts - 1)) + self.linear_min)
             self.move_abs(self.theta1_mid, self.theta2_mid)
         self.reset()
-    
+
     def __del__(self):
         print("FiveBar shutting down.")
         self.reset()
