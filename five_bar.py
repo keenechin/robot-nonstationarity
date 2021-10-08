@@ -99,12 +99,12 @@ class FiveBar():
     def test_motion(self):
         num_drifts = 5
         for j in range(num_drifts):
+            self.drift(self.linear_range *
+                       (j / (num_drifts - 1)) + self.linear_min)
             for i in range(30):
                 id = np.random.randint(0, 9)
                 mag = np.random.random_sample()
                 self.primitive(id, mag)
-            self.drift(self.linear_range *
-                       (j / (num_drifts - 1)) + self.linear_min)
             self.move_abs(self.theta1_mid, self.theta2_mid)
         self.reset()
 
