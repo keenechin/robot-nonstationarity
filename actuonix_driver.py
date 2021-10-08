@@ -103,6 +103,6 @@ class LinearDriver:
             done_moving = self.update_joint_positions_and_velocities()
             elapsed_time = time.time() - start_time
 
-    def __del__(self):
-        self.reset()
+    def __del__(self): 
+        #TODO: make sure the port actually closes
         self.close()

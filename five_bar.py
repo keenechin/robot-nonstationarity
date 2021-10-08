@@ -72,9 +72,6 @@ class FiveBar():
 
     def move_delta(self, delta1, delta2, verbose=False):
         curr = self.get_pos()
-        # new_pos1 = curr1 + delta1
-        # new_pos2 = curr2 + delta2
-
         self.move_abs(curr[0]+delta1, curr[1]+delta2, verbose=verbose)
 
     def get_pos(self):
