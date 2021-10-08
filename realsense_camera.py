@@ -11,8 +11,9 @@ from queue import Empty
 class RealsenseCamera():
     def __init__(self, mode="Tracking"):
         camera = rs.pipeline()
-        config = rs.config()
-        config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 60)
+        self.config = rs.config()
+        self.config.enable_stream(rs.stream.depth)
+        self.config.enable_stream(rs.stream.infrared, 1, 848, 480, rs.format.y8, 90)
         self.camera = camera
         self.feed = Queue()
         if mode == "Tracking":
@@ -37,7 +38,7 @@ class RealsenseCamera():
         return OPENCV_OBJECT_TRACKERS[tracker_name]()
 
     def initialize_tracking(self, trackerType="mosse"):  # medianflow
-        self.camera.start()
+        self.camera.start(self.config)
         bboxes = []
         multi_tracker = cv2.MultiTracker_create()
         for i in range(100):  # give camera time to autoadjust
@@ -64,11 +65,16 @@ class RealsenseCamera():
 
     def get_frame(self):
         frames = self.camera.wait_for_frames()
-        color_frame = frames.get_color_frame()
-        frame = np.asanyarray(color_frame.get_data())
+        ir_frame = frames.get_infrared_frame(0)
+        frame = np.asanyarray(ir_frame.get_data())
         return frame
 
     def initialize_detection(self):
+        profile = self.camera.start(self.config)
+
+        device = profile.get_device()
+        depth_sensor = device.query_sensors()[0]
+        depth_sensor.set_option(rs.option.laser_power, 1)
         init_window = "Draw box around relevant area"
         for i in range(100):
             frame = self.get_frame()
@@ -79,15 +85,13 @@ class RealsenseCamera():
         return [bbox[0], bbox[1], bbox[0]+bbox[2], bbox[1]+bbox[3]]
 
     def detect_points(self, queue, visualize=True):
-        self.camera.start()
         rect = self.initialize_detection()
         print(rect)
         while True:
             try:
                 frame = self.get_frame()
                 cropped = frame[rect[1]:rect[3], rect[0]:rect[2]]
-                gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
-                gray_blurred = cv2.blur(gray, (3, 3))
+                gray_blurred = cv2.blur(cropped, (3, 3))
                 detected_circles = cv2.HoughCircles(gray_blurred,
                                                     cv2.HOUGH_GRADIENT, dp=1, minDist=20, param1=50,
                                                     param2=0.95, minRadius=2, maxRadius=7)
