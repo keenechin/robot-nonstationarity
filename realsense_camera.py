@@ -9,10 +9,10 @@ from queue import Empty
 
 
 class RealsenseCamera():
-    def __init__(self, mode="Detection"):
+    def __init__(self, mode="Tracking"):
         camera = rs.pipeline()
         config = rs.config()
-        config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+        config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 60)
         self.camera = camera
         self.feed = Queue()
         if mode == "Tracking":
@@ -76,20 +76,19 @@ class RealsenseCamera():
         bbox = cv2.selectROI(init_window, frame,
                              fromCenter=False, showCrosshair=True)
         cv2.destroyWindow(init_window)
-        mask = np.zeros(frame.shape[:2], dtype="uint8")
-        cv2.rectangle(mask, (bbox[0], bbox[1]), (bbox[0]+bbox[2], bbox[1]+bbox[3]), 255, -1)
-        return mask
+        return [bbox[0], bbox[1], bbox[0]+bbox[2], bbox[1]+bbox[3]]
 
     def detect_points(self, queue, visualize=True):
         self.camera.start()
-        mask = self.initialize_detection()
+        rect = self.initialize_detection()
+        print(rect)
         while True:
             try:
                 frame = self.get_frame()
-                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                cropped = frame[rect[1]:rect[3], rect[0]:rect[2]]
+                gray = cv2.cvtColor(cropped, cv2.COLOR_BGR2GRAY)
                 gray_blurred = cv2.blur(gray, (3, 3))
-                masked = cv2.bitwise_and(gray_blurred, gray_blurred, mask=mask)
-                detected_circles = cv2.HoughCircles(masked,
+                detected_circles = cv2.HoughCircles(gray_blurred,
                                                     cv2.HOUGH_GRADIENT, dp=1, minDist=20, param1=50,
                                                     param2=0.95, minRadius=2, maxRadius=7)
 
@@ -101,9 +100,9 @@ class RealsenseCamera():
 
                     if visualize:
                         for circle in circles:
-                            cv2.circle(img=frame, center=(
+                            cv2.circle(img=cropped, center=(
                                 circle[0], circle[1]), radius=circle[2], color=(0, 200, 0), thickness=1)
-                            cv2.imshow('Live Feed', frame)
+                            cv2.imshow('Live Feed', cropped)
                             k = cv2.waitKey(1)
                             if (k == ord('q')):  # q is pressed
                                 break
@@ -113,7 +112,7 @@ class RealsenseCamera():
                 print("User exit during detection")
                 break
 
-    def track_points(self, queue, visualize=False):
+    def track_points(self, queue, visualize=True):
         bboxes, multi_tracker = self.initialize_tracking()
         while True:
             frame = self.get_frame()
@@ -148,7 +147,7 @@ class RealsenseCamera():
 
 
 if __name__ == "__main__":
-    camera = RealsenseCamera()
+    camera = RealsenseCamera(mode="Detection")
     camera.start()
     while True:
         try:
