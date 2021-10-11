@@ -103,7 +103,8 @@ class FiveBar():
                        (j / (num_drifts - 1)) + self.linear_min)
             for i in range(30):
                 id = np.random.randint(0, 9)
-                mag = np.random.random_sample()
+                # mag = np.random.random_sample()
+                mag = 0.5
                 self.primitive(id, mag)
             self.move_abs(self.theta1_mid, self.theta2_mid)
         self.reset()

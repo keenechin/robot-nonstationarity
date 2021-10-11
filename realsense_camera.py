@@ -93,19 +93,19 @@ class RealsenseCamera():
         new_height = int(np.around(scale * height))
         new_width = int(np.around(scale * width))
         scaled = cv2.resize(
-            image, (new_height, new_width))
+            image, (new_width, new_height))
         return scaled
 
     def detect_points(self, queue, visualize=True):
         rect = self.initialize_detection()
+        last_state = None
         while True:
             try:
                 frame = self.get_frame()
                 cropped = frame[rect[1]:rect[3], rect[0]:rect[2]]
                 original = cropped
                 
-                brightness_thresh = 0.5 * \
-                    (np.mean(cropped[:]) + np.max(cropped[:]))
+                brightness_thresh = (0.6 * np.mean(cropped[:]) + 0.4 * np.max(cropped[:]))
                 _, cropped = cv2.threshold(
                     cropped, brightness_thresh, 255, cv2.THRESH_BINARY)
 
@@ -113,6 +113,7 @@ class RealsenseCamera():
                 params = cv2.SimpleBlobDetector_Params()
                 params.filterByArea = True
                 params.minArea = 4
+                params.maxArea = 400
                 params.filterByCircularity = False
                 params.filterByConvexity = False
                 params.filterByInertia = False
@@ -120,10 +121,22 @@ class RealsenseCamera():
                 keypoints = detector.detect(cropped)
 
                 if len(keypoints) == 2:
-                    state = []
-                    for keypoint in keypoints:
-                        for val in keypoint.pt:
-                            state.append(val)
+                    x1 = np.round(keypoints[0].pt[0], 1)
+                    y1 = np.round(keypoints[0].pt[1], 1)
+                    x2 = np.round(keypoints[1].pt[0], 1)
+                    y2 = np.round(keypoints[1].pt[1], 1)
+                    state = [x1, y1, x2, y2]
+
+                    if last_state is not None:
+                        last_x1 = last_state[0]
+                        last_y1 = last_state[1]
+                        cis_dist = ((x1 - last_x1)**2 + (y1 - last_y1)**2)**0.5
+                        trans_dist = ((x2 - last_x1)**2 + (y2 - last_y1)**2)**0.5
+                        if trans_dist < cis_dist:
+                            print("Inverted.")
+                            state = [x2, y2, x1, y1]
+
+                    last_state = state
                     queue.put(state)
 
                     if visualize:
@@ -133,7 +146,7 @@ class RealsenseCamera():
                         cv2.imshow('Live Feed', scaled)
                         k = cv2.waitKey(1)
                         if (k == ord('q')):  # q is pressed
-                            break
+                            raise KeyboardInterrupt
                 else:
                     print("Detection Fail.")
             except KeyboardInterrupt:
@@ -180,6 +193,7 @@ if __name__ == "__main__":
     while True:
         try:
             print(camera.feed.get())
+            pass
         except KeyboardInterrupt:
             print("\nUser exit main.")
             break
