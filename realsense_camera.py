@@ -13,7 +13,8 @@ class RealsenseCamera():
         camera = rs.pipeline()
         self.config = rs.config()
         self.config.enable_stream(rs.stream.depth)
-        self.config.enable_stream(rs.stream.infrared, 1, 848, 480, rs.format.y8, 90)
+        self.config.enable_stream(
+            rs.stream.infrared, 1, 848, 480, rs.format.y8, 90)
         self.camera = camera
         self.feed = Queue()
         if mode == "Tracking":
@@ -84,36 +85,59 @@ class RealsenseCamera():
         cv2.destroyWindow(init_window)
         return [bbox[0], bbox[1], bbox[0]+bbox[2], bbox[1]+bbox[3]]
 
+    def rescale(self, image, scale):
+        if len(image.shape) == 2:
+            height, width = image.shape
+        if len(image.shape) == 3:
+            height, width, _ = image.shape
+        new_height = int(np.around(scale * height))
+        new_width = int(np.around(scale * width))
+        scaled = cv2.resize(
+            image, (new_height, new_width))
+        return scaled
+
     def detect_points(self, queue, visualize=True):
         rect = self.initialize_detection()
-        print(rect)
         while True:
             try:
                 frame = self.get_frame()
                 cropped = frame[rect[1]:rect[3], rect[0]:rect[2]]
-                gray_blurred = cv2.blur(cropped, (3, 3))
-                detected_circles = cv2.HoughCircles(gray_blurred,
-                                                    cv2.HOUGH_GRADIENT, dp=1, minDist=20, param1=50,
-                                                    param2=0.95, minRadius=2, maxRadius=7)
+                original = cropped
+                
+                brightness_thresh = 0.5 * \
+                    (np.mean(cropped[:]) + np.max(cropped[:]))
+                _, cropped = cv2.threshold(
+                    cropped, brightness_thresh, 255, cv2.THRESH_BINARY)
 
-                if detected_circles is not None:
-                    # make integer, flatten
-                    circles = np.uint16(np.around(detected_circles[0, :, :]))
+                cropped = 255-cropped
+                params = cv2.SimpleBlobDetector_Params()
+                params.filterByArea = True
+                params.minArea = 4
+                params.filterByCircularity = False
+                params.filterByConvexity = False
+                params.filterByInertia = False
+                detector = cv2.SimpleBlobDetector_create(params)
+                keypoints = detector.detect(cropped)
 
-                    queue.put(circles)
+                if len(keypoints) == 2:
+                    state = []
+                    for keypoint in keypoints:
+                        for val in keypoint.pt:
+                            state.append(val)
+                    queue.put(state)
 
                     if visualize:
-                        for circle in circles:
-                            cv2.circle(img=cropped, center=(
-                                circle[0], circle[1]), radius=circle[2], color=(0, 200, 0), thickness=1)
-                            cv2.imshow('Live Feed', cropped)
-                            k = cv2.waitKey(1)
-                            if (k == ord('q')):  # q is pressed
-                                break
+                        im_with_keypoints = cv2.drawKeypoints(original, keypoints, np.array(
+                            []), (0, 0, 255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+                        scaled = self.rescale(im_with_keypoints, 4)
+                        cv2.imshow('Live Feed', scaled)
+                        k = cv2.waitKey(1)
+                        if (k == ord('q')):  # q is pressed
+                            break
                 else:
                     print("Detection Fail.")
             except KeyboardInterrupt:
-                print("User exit during detection")
+                print("User exit during detection.")
                 break
 
     def track_points(self, queue, visualize=True):
@@ -159,4 +183,3 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("\nUser exit main.")
             break
-    
