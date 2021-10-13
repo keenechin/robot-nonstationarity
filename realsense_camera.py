@@ -1,3 +1,4 @@
+from operator import pos
 import pyrealsense2 as rs
 import cv2
 from multiprocessing import Process, Queue
@@ -9,7 +10,8 @@ from queue import Empty
 
 
 class RealsenseCamera():
-    def __init__(self, mode="Tracking"):
+    def __init__(self, mode="Detection", visualize=False, viewport=None):
+        self.viewport = viewport
         camera = rs.pipeline()
         self.config = rs.config()
         self.config.enable_stream(rs.stream.depth)
@@ -21,7 +23,7 @@ class RealsenseCamera():
             self.process = Process(target=self.track_points, args=(self.feed,))
         if mode == "Detection":
             self.process = Process(
-                target=self.detect_points, args=(self.feed,))
+                target=self.detect_points, args=(self.feed, visualize))
 
     def start(self):
         self.process.start()
@@ -76,14 +78,16 @@ class RealsenseCamera():
         device = profile.get_device()
         depth_sensor = device.query_sensors()[0]
         depth_sensor.set_option(rs.option.laser_power, 1)
-        init_window = "Draw box around relevant area"
-        for i in range(100):
-            frame = self.get_frame()
-        cv2.imshow(init_window, frame)
-        bbox = cv2.selectROI(init_window, frame,
-                             fromCenter=False, showCrosshair=True)
-        cv2.destroyWindow(init_window)
-        return [bbox[0], bbox[1], bbox[0]+bbox[2], bbox[1]+bbox[3]]
+        if self.viewport is None:
+            init_window = "Draw box around relevant area"
+            for i in range(100):
+                frame = self.get_frame()
+            cv2.imshow(init_window, frame)
+            self.viewport = cv2.selectROI(init_window, frame,
+                                          fromCenter=False, showCrosshair=True)
+            print(self.viewport)
+            cv2.destroyWindow(init_window)
+        return [self.viewport[0], self.viewport[1], self.viewport[0]+self.viewport[2], self.viewport[1]+self.viewport[3]]
 
     def rescale(self, image, scale):
         if len(image.shape) == 2:
@@ -98,9 +102,14 @@ class RealsenseCamera():
 
     def detect_points(self, queue, visualize=True):
         rect = self.initialize_detection()
-        last_state = None
+        last_positions = None
         while True:
             try:
+                if not queue.empty():
+                    try:
+                        queue.get_nowait()
+                    except Empty:
+                        pass
                 frame = self.get_frame()
                 cropped = frame[rect[1]:rect[3], rect[0]:rect[2]]
                 original = cropped
@@ -125,19 +134,22 @@ class RealsenseCamera():
                     y1 = np.round(keypoints[0].pt[1], 1)
                     x2 = np.round(keypoints[1].pt[0], 1)
                     y2 = np.round(keypoints[1].pt[1], 1)
-                    state = [x1, y1, x2, y2]
-
-                    if last_state is not None:
-                        last_x1 = last_state[0]
-                        last_y1 = last_state[1]
+                    positions = [x1, y1, x2, y2]
+                    velocities = [0, 0, 0, 0]
+                    
+                    if last_positions is not None:
+                        last_x1 = last_positions[0]
+                        last_y1 = last_positions[1]
                         cis_dist = ((x1 - last_x1)**2 + (y1 - last_y1)**2)**0.5
                         trans_dist = ((x2 - last_x1)**2 + (y2 - last_y1)**2)**0.5
                         if trans_dist < cis_dist:
-                            print("Inverted.")
-                            state = [x2, y2, x1, y1]
+                            positions = [x2, y2, x1, y1]
 
-                    last_state = state
-                    queue.put(state)
+                        velocities = [positions[i]-last_positions[i] for i in range(len(positions))]
+
+                    last_positions = positions
+                    state = np.around([*positions, *velocities], decimals=3)
+                    queue.put((True, state))
 
                     if visualize:
                         im_with_keypoints = cv2.drawKeypoints(original, keypoints, np.array(
@@ -148,7 +160,7 @@ class RealsenseCamera():
                         if (k == ord('q')):  # q is pressed
                             raise KeyboardInterrupt
                 else:
-                    print("Detection Fail.")
+                    queue.put((False, [(keypoint.pt, keypoint.size) for keypoint in keypoints]))
             except KeyboardInterrupt:
                 print("User exit during detection.")
                 break
@@ -192,7 +204,11 @@ if __name__ == "__main__":
     camera.start()
     while True:
         try:
-            print(camera.feed.get())
+            success, data = camera.feed.get()
+            if success:
+                print(data)
+            else:
+                print(f"Detection Fail. {len(data)} keypoints found instead of 2")
             pass
         except KeyboardInterrupt:
             print("\nUser exit main.")

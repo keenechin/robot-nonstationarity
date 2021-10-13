@@ -27,6 +27,8 @@ class FiveBar():
         self.linear_range = self.linear_max-self.linear_min
         self.linear_state = self.linear_min
 
+        self.stationaryid = 4
+
         self.reset()
 
     def reset(self):
