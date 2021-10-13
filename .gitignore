@@ -1,6 +1,7 @@
 .vscode/
 *.png
 *.mat
+*.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
