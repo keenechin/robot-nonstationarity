@@ -12,6 +12,8 @@ from queue import Empty
 class RealsenseCamera():
     def __init__(self, mode="Detection", visualize=False, viewport=None):
         self.viewport = viewport
+        self.width = viewport[2]
+        self.height = viewport[3]
         camera = rs.pipeline()
         self.config = rs.config()
         self.config.enable_stream(rs.stream.depth)
@@ -87,7 +89,10 @@ class RealsenseCamera():
                                           fromCenter=False, showCrosshair=True)
             print(self.viewport)
             cv2.destroyWindow(init_window)
-        return [self.viewport[0], self.viewport[1], self.viewport[0]+self.viewport[2], self.viewport[1]+self.viewport[3]]
+        self.width = self.viewport[2]
+        self.height = self.viewport[3]
+        return [self.viewport[0], self.viewport[1],
+                self.viewport[0]+self.viewport[2], self.viewport[1]+self.viewport[3]]
 
     def rescale(self, image, scale):
         if len(image.shape) == 2:
@@ -113,8 +118,9 @@ class RealsenseCamera():
                 frame = self.get_frame()
                 cropped = frame[rect[1]:rect[3], rect[0]:rect[2]]
                 original = cropped
-                
-                brightness_thresh = (0.6 * np.mean(cropped[:]) + 0.4 * np.max(cropped[:]))
+
+                brightness_thresh = (
+                    0.6 * np.mean(cropped[:]) + 0.4 * np.max(cropped[:]))
                 _, cropped = cv2.threshold(
                     cropped, brightness_thresh, 255, cv2.THRESH_BINARY)
 
@@ -136,16 +142,18 @@ class RealsenseCamera():
                     y2 = np.round(keypoints[1].pt[1], 1)
                     positions = [x1, y1, x2, y2]
                     velocities = [0, 0, 0, 0]
-                    
+
                     if last_positions is not None:
                         last_x1 = last_positions[0]
                         last_y1 = last_positions[1]
                         cis_dist = ((x1 - last_x1)**2 + (y1 - last_y1)**2)**0.5
-                        trans_dist = ((x2 - last_x1)**2 + (y2 - last_y1)**2)**0.5
+                        trans_dist = ((x2 - last_x1)**2 +
+                                      (y2 - last_y1)**2)**0.5
                         if trans_dist < cis_dist:
                             positions = [x2, y2, x1, y1]
 
-                        velocities = [positions[i]-last_positions[i] for i in range(len(positions))]
+                        velocities = [positions[i]-last_positions[i]
+                                      for i in range(len(positions))]
 
                     last_positions = positions
                     state = np.around([*positions, *velocities], decimals=3)
@@ -160,7 +168,8 @@ class RealsenseCamera():
                         if (k == ord('q')):  # q is pressed
                             raise KeyboardInterrupt
                 else:
-                    queue.put((False, [(keypoint.pt, keypoint.size) for keypoint in keypoints]))
+                    queue.put((False, [(keypoint.pt, keypoint.size)
+                                       for keypoint in keypoints]))
             except KeyboardInterrupt:
                 print("User exit during detection.")
                 break
@@ -208,7 +217,8 @@ if __name__ == "__main__":
             if success:
                 print(data)
             else:
-                print(f"Detection Fail. {len(data)} keypoints found instead of 2")
+                print(
+                    f"Detection Fail. {len(data)} keypoints found instead of 2")
             pass
         except KeyboardInterrupt:
             print("\nUser exit main.")
