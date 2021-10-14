@@ -10,7 +10,7 @@ from queue import Empty
 
 
 class RealsenseCamera():
-    def __init__(self, mode="Detection", visualize=False, viewport=None):
+    def __init__(self, mode="Detection", visualize=False, viewport=[250, 85, 272, 172]):
         self.viewport = viewport
         self.width = viewport[2]
         self.height = viewport[3]
@@ -136,10 +136,10 @@ class RealsenseCamera():
                 keypoints = detector.detect(cropped)
 
                 if len(keypoints) == 2:
-                    x1 = np.round(keypoints[0].pt[0], 1)
-                    y1 = np.round(keypoints[0].pt[1], 1)
-                    x2 = np.round(keypoints[1].pt[0], 1)
-                    y2 = np.round(keypoints[1].pt[1], 1)
+                    x1 = np.round(keypoints[0].pt[0], 1)/self.width
+                    y1 = np.round(keypoints[0].pt[1], 1)/self.height
+                    x2 = np.round(keypoints[1].pt[0], 1)/self.width
+                    y2 = np.round(keypoints[1].pt[1], 1)/self.height
                     positions = [x1, y1, x2, y2]
                     velocities = [0, 0, 0, 0]
 
@@ -156,7 +156,7 @@ class RealsenseCamera():
                                       for i in range(len(positions))]
 
                     last_positions = positions
-                    state = np.around([*positions, *velocities], decimals=3)
+                    state = np.around([*positions, *velocities], decimals=4)
                     queue.put((True, state))
 
                     if visualize:
