@@ -14,25 +14,25 @@ class FiveBarEnv(gym.Env):
         self.action_space = spaces.Discrete(9)
         self.observation_space = spaces.Box(
             low=np.array([0, 0,
-                          1, 1, 1, 1,
+                          0, 0, 0, 0,
                           -np.pi, -np.pi, -np.pi, -np.pi]),
             high=np.array([2*np.pi, 2*np.pi,
-                           self.camera.width, self.camera.height, self.camera.width, self.camera.height,
+                           1, 1, 1, 1,
                            np.pi, np.pi, np.pi, np.pi]),
             dtype=np.float64
         )
         self.stationaryid = self.hardware.stationaryid
 
     def try_recover(self, keypoints):
-        return [-1, -1, -1, -1, -1, -1, -1, -1]
+        return [-1] * self.observation_space.shape[0]
 
     def _get_obs(self):
-        servo_state = self.hardware.get_pos()
-        success, pendulum_state = self.camera.feed.get()
+        x_servo = self.hardware.get_pos()
+        success, x_pndlm = self.camera.feed.get()
         if success:
-            state = [*servo_state, *pendulum_state]
+            state = [*x_servo, *x_pndlm]
         else:
-            state = [*servo_state, *self.try_recover(pendulum_state)]
+            state = [*x_servo, *self.try_recover(x_pndlm)]
         return np.array(state)
 
     def step(self, u):
@@ -47,7 +47,7 @@ class FiveBarEnv(gym.Env):
     def cost(self, state):
         angle_from_goal = np.arctan2(
             [state[4] - state[2]], [state[5] - state[3]])
-        return 1*angle_from_goal[0]
+        return 1*np.abs(angle_from_goal[0])
 
     def reset(self):
         self.hardware.reset()
