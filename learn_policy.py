@@ -2,7 +2,9 @@ import gym
 import numpy as np
 from sklearn.neural_network import MLPRegressor
 import time
-import copy 
+import copy
+import pickle
+
 
 def test(env):
     num_drifts = 5
@@ -53,10 +55,15 @@ def test_model(env, model, N):
     return errors
 
 
-def policy(state, w):
+def linear_softmax_policy(state, w):
     z = state.dot(w)
     exp = np.exp(z)
     return exp/np.sum(exp)
+
+
+def softmax_grad(softmax):
+    s = softmax.reshape(-1, 1)
+    return np.diagflat(s) - np.dot(s, s.T)
 
 
 if __name__ == "__main__":
@@ -66,10 +73,67 @@ if __name__ == "__main__":
         kwargs={}
     )
     env = gym.make('FiveBarPendulum-v0')
+    np.random.seed(3)
+    filename = 'hardware_model.sav'
+    from os.path import exists
+    if exists(filename):
+        model = pickle.load(open(filename, 'rb'))
+    else:
+        model = learn_model(env, 1000)
+        pickle.dump(model, open(filename, 'wb'))
+
+    # Learning Code Here
+    # REINFORCE
+
     start = time.time()
-    model = learn_model(env, 100)
-    errs = test_model(env, model, 100)
+    NUM_EPISODES = 250
+    LEARNING_RATE = 0.0025
+    GAMMA = 0.99
+    nA = env.action_space.n
+    episode_rewards = []
+
+    w = np.random.rand(env.observation_space.shape[0], nA)
+    best_w = w
+    best_score = 0
+    policy = linear_softmax_policy
+
+    for e in range(NUM_EPISODES):
+        state = np.reshape(env.reset(), (1, -1))
+        grads = []
+        rewards = []
+        score = 0
+        for i in range(100):
+            probs = policy(state, w)
+            action = np.random.choice(list(range(nA)), p=probs[0])
+            next_state = model.predict(np.reshape([*state[0], action], (1, -1)))
+            reward = -env.cost(next_state[0])
+            dsoftmax = softmax_grad(probs)[action, :]
+            dlog = dsoftmax / probs[0, action]
+            grad = state.T.dot(dlog[None, :])
+            grads.append(grad)
+            rewards.append(reward)
+            score += reward
+            state = next_state
+
+        for i in range(len(grads)):
+
+            # Loop through everything that happend in the episode and update towards the log policy gradient times **FUTURE** reward
+            w += LEARNING_RATE * \
+                grads[i] * sum([r * (GAMMA ** r)
+                                for t, r in enumerate(rewards[i:])])
+
+        # Append for logging and print
+        episode_rewards.append(score)
+        if score < best_score:
+            best_w = w
+            best_score = score
+        print(f"EP: {str(e)} Score: {str(score)}")
+
+    print((best_score, best_w))
+    import matplotlib.pyplot as plt
+    plt.plot(np.arange(NUM_EPISODES), episode_rewards)
+    plt.show()
+    # Wrapup code
     print(f"Time passed: {time.time()-start}")
     env.reset()
-    np.savetxt('errs.csv', errs, delimiter=',')
     env.camera.__del__()
