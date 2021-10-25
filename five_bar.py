@@ -39,7 +39,7 @@ class FiveBar():
     def drift(self, pos):
         assert pos >= self.linear_min
         assert pos <= self.linear_max
-        p = self.linear_zeros
+        p = np.copy(self.linear_zeros)
         p[0, 3:7] = pos
         self.linear_state = pos
         self.linear.move_joint_position(p, 1.0)
@@ -99,7 +99,7 @@ class FiveBar():
             self.primitive(idx)
 
     def test_motion(self):
-        num_drifts = 5
+        num_drifts = 2
         for j in range(num_drifts):
             self.drift(self.linear_range *
                        (j / (num_drifts - 1)) + self.linear_min)

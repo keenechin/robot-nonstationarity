@@ -105,4 +105,6 @@ class LinearDriver:
 
     def __del__(self): 
         #TODO: make sure the port actually closes
+        pos = np.ones((1, 12))*self.minimum_joint_position
+        self.move_joint_position(pos, 1)
         self.close()
