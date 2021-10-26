@@ -24,7 +24,7 @@ class FiveBarEnv(gym.Env):
         self.stationaryid = self.hardware.stationaryid
 
     def try_recover(self, keypoints):
-        return [-1] * self.observation_space.shape[0]
+        return [-1] * (self.observation_space.shape[0] - 2)
 
     def _get_obs(self):
         x_servo = self.hardware.get_pos()

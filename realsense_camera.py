@@ -10,7 +10,7 @@ from queue import Empty
 
 
 class RealsenseCamera():
-    def __init__(self, mode="Detection", visualize=False, viewport=[250, 85, 272, 172]):
+    def __init__(self, mode="Detection", visualize=True, viewport=[311, 173, 237, 150]):
         self.viewport = viewport
         self.width = viewport[2]
         self.height = viewport[3]
@@ -80,7 +80,7 @@ class RealsenseCamera():
         device = profile.get_device()
         depth_sensor = device.query_sensors()[0]
         depth_sensor.set_option(rs.option.laser_power, 1)
-        if self.viewport is None:
+        if False or self.viewport is None:
             init_window = "Draw box around relevant area"
             for i in range(100):
                 frame = self.get_frame()
@@ -89,6 +89,7 @@ class RealsenseCamera():
                                           fromCenter=False, showCrosshair=True)
             print(self.viewport)
             cv2.destroyWindow(init_window)
+
         self.width = self.viewport[2]
         self.height = self.viewport[3]
         return [self.viewport[0], self.viewport[1],

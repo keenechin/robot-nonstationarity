@@ -2,9 +2,7 @@ import gym
 import numpy as np
 from sklearn.neural_network import MLPRegressor
 import time
-import copy
 import pickle
-from functools import partial
 
 
 def test(env):
@@ -37,7 +35,7 @@ def rollout(env, policy, num_steps):
 
 
 def random_policy(state):
-    return np.random.randint(env.action_space.n)
+    return linear_softmax_policy(state, np.random.rand(10, 9))
 
 
 def learn_model(env, policy, N):
@@ -102,20 +100,20 @@ if __name__ == "__main__":
     )
     env = gym.make('FiveBarPendulum-v0')
     np.random.seed(6)
-    N = 251
+    N = 252
     filename = f'hardware_model_{N}.sav'
     from os.path import exists
     if exists(filename):
         model = pickle.load(open(filename, 'rb'))
     else:
-        model = learn_model(env, learned_policy, N)
+        model = learn_model(env, random_policy, N)
         pickle.dump(model, open(filename, 'wb'))
 
     # Learning Code Here
     # REINFORCE
 
     start = time.time()
-    NUM_EPISODES = 250
+    NUM_EPISODES = 253
     LEARNING_RATE = 0.000025
     GAMMA = 0.99
     nA = env.action_space.n
@@ -147,7 +145,7 @@ if __name__ == "__main__":
 
         for i in range(len(grads)):
 
-            # Loop through everything that happend in the episode and update towards the log policy gradient times **FUTURE** reward
+            # update towards the log policy gradient times **FUTURE** reward
             w += LEARNING_RATE * \
                 grads[i] * sum([r * (GAMMA ** r)
                                 for t, r in enumerate(rewards[i:])])

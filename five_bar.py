@@ -34,7 +34,7 @@ class FiveBar():
     def reset(self):
         self.linear.move_joint_position(self.linear_zeros, 1.0)
         self.move_abs(self.theta1_mid, self.theta2_mid)
-        time.sleep(1)
+        time.sleep(0.1)
 
     def drift(self, pos):
         assert pos >= self.linear_min
@@ -80,26 +80,47 @@ class FiveBar():
         curr = self.servos.get_pos(self.servos.motor_id)
         return curr
 
-    def primitive(self, id, mag=0.2*np.pi, verbose=False):
+    def primitive(self, id, mag=1.5 * np.pi, verbose=False, mode=2):
 
-        primitives = [[-mag, -mag],
-                      [-mag, 0.0],
-                      [-mag, mag],
-                      [0.0, -mag],
-                      [0.0, 0.0],
-                      [0.0, mag],
-                      [mag, -mag],
-                      [mag, 0.0],
-                      [mag, mag]]
+        if mode == 1:
+            primitives = [[-mag, -mag],
+                          [-mag, 0.0],
+                          [-mag, mag],
+                          [0.0, -mag],
+                          [0.0, 0.0],
+                          [0.0, mag],
+                          [mag, -mag],
+                          [mag, 0.0],
+                          [mag, mag]]
 
-        self.move_delta(*primitives[id], verbose=verbose)
+            self.move_delta(*primitives[id], verbose=verbose)
+            time.sleep(0.025)
+        if mode == 2:
+            primitives = [[self.theta1_min, self.theta2_min],
+                          [self.theta1_min, self.theta2_mid],
+                          [self.theta1_min, self.theta2_max],
+                          [self.theta1_mid, self.theta2_min],
+                          [self.theta1_mid, self.theta2_mid],
+                          [self.theta1_mid, self.theta2_max],
+                          [self.theta1_max, self.theta2_min],
+                          [self.theta1_max, self.theta2_mid],
+                          [self.theta1_max, self.theta2_max]]
+            scale = 0.3
+
+            def rescale(value, scale, reference):
+                new_val = (value - reference) * scale + reference
+                return new_val
+
+            self.move_abs(rescale(primitives[id][0], scale, self.theta1_mid), rescale(
+                primitives[id][1], scale, self.theta2_mid))
+            time.sleep(0.05)
 
     def trajectory(self, primitive_list):
         for idx in primitive_list:
             self.primitive(idx)
 
     def test_motion(self):
-        num_drifts = 2
+        num_drifts = 5
         for j in range(num_drifts):
             self.drift(self.linear_range *
                        (j / (num_drifts - 1)) + self.linear_min)
