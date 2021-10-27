@@ -1,4 +1,5 @@
 import gym
+from os.path import exists
 import numpy as np
 from sklearn.neural_network import MLPRegressor
 import time
@@ -18,14 +19,14 @@ def test(env):
     env.reset()
 
 
-def rollout(env, policy, num_steps):
+def rollout(env, policy, params, num_steps):
     X = []
     y = []
     state = env.reset()
     nA = env.action_space.n
 
     for i in range(num_steps):
-        probs = policy(state)
+        probs = policy(state, params)
         action = np.random.choice(list(range(nA)), p=probs)
         next_state, reward, _, _ = env.step(action)
         X.append([*state, action])
@@ -34,27 +35,14 @@ def rollout(env, policy, num_steps):
     return X, y
 
 
-def random_policy(state):
-    return linear_softmax_policy(state, np.random.rand(10, 9))
-
-
-def learn_model(env, policy, N):
+def learn_model(env, policy, params, N):
     model = MLPRegressor(max_iter=5000)
     X = []
     y = []
-    X, y = rollout(env, policy, N)
+    X, y = rollout(env, policy, params, N)
     model.fit(X, y)
     print("Model Trained.")
     return model
-
-
-def test_model(env, model, N):
-    errors = np.empty((N, env.observation_space.shape[0]))
-    X, y = rollout(env, random_policy, N)
-    for i in range(N):
-        expected_output = model.predict(np.reshape(X[i], (1, -1)))
-        errors[i] = np.reshape(y[i], (1, -1)) - expected_output
-    return errors
 
 
 def linear_softmax_policy(state, params):
@@ -68,61 +56,13 @@ def softmax_grad(softmax):
     return np.diagflat(s) - np.dot(s, s.T)
 
 
-def learned_policy(state):
-    params = np.array([[1.30599275,  0.8440695,  0.58461806, -0.02011946,  0.03461973,
-                        0.54696131,  0.34817409,  0.09967214,  0.33051899],
-                       [1.06756715,  0.91685071,  0.51103562,  0.44438496,  0.51257505,
-                        0.59803864,  0.83532824,  0.47229371,  0.4040024],
-                       [1.04607871,  0.84804166,  0.01283282,  0.66361759,  0.79730298,
-                        0.67203189,  0.77656011,  0.44848724,  0.12165581],
-                       [1.09589905,  0.51317097,  0.16997307,  0.68079135,  0.96937808,
-                        0.22981028,  0.67614996,  0.484358,  0.71306881],
-                       [1.08442556,  0.39196105,  0.21902421,  0.3574361,  0.73008704,
-                        0.6766985,  0.46125652,  0.89495842,  0.44598672],
-                       [0.49545462,  0.76035037,  0.0471648,  0.35860607,  0.76418505,
-                        0.73295034,  0.30972206,  0.10925648,  0.46686322],
-                       [0.35234971,  0.72541968,  0.1852073,  0.32916013,  0.84524875,
-                        0.60527143,  0.89262316,  0.97511096,  0.83733929],
-                       [0.20997242,  0.60701566,  0.47026797,  0.39273162,  0.74685098,
-                        0.80762057,  0.6962998,  0.13834534,  0.70353977],
-                       [0.06485459,  0.19487276,  0.92483907,  0.40695581,  0.14517594,
-                        0.68020901,  0.15877936,  0.6467614,  0.25285785],
-                       [0.05769313,  0.95822918,  0.06329934,  0.51090626,  0.34163173,
-                        0.64786567,  0.84842912,  0.60230252,  0.58571582]])
-    return linear_softmax_policy(state, params)
-
-
-if __name__ == "__main__":
-    gym.envs.register(
-        id='FiveBarPendulum-v0',
-        entry_point='five_bar_env:FiveBarEnv',
-        kwargs={}
-    )
-    env = gym.make('FiveBarPendulum-v0')
-    np.random.seed(6)
-    N = 252
-    filename = f'hardware_model_{N}.sav'
-    from os.path import exists
-    if exists(filename):
-        model = pickle.load(open(filename, 'rb'))
-    else:
-        model = learn_model(env, random_policy, N)
-        pickle.dump(model, open(filename, 'wb'))
-
-    # Learning Code Here
-    # REINFORCE
-
-    start = time.time()
-    NUM_EPISODES = 253
-    LEARNING_RATE = 0.000025
-    GAMMA = 0.99
+def reinforce(policy, w, softmax_grad, env, model, NUM_EPISODES, LEARNING_RATE, GAMMA):
+    r = 0.5 ** (1/NUM_EPISODES)
     nA = env.action_space.n
     episode_rewards = []
 
-    w = np.random.rand(env.observation_space.shape[0], nA)
     best_w = w
     best_score = 0
-    policy = linear_softmax_policy
 
     for e in range(NUM_EPISODES):
         state = np.reshape(env.reset(), (1, -1))
@@ -144,23 +84,91 @@ if __name__ == "__main__":
             state = next_state
 
         for i in range(len(grads)):
-
             # update towards the log policy gradient times **FUTURE** reward
             w += LEARNING_RATE * \
                 grads[i] * sum([r * (GAMMA ** r)
                                 for t, r in enumerate(rewards[i:])])
 
+        # Learning rate decay
+        LEARNING_RATE = LEARNING_RATE * r
         # Append for logging and print
         episode_rewards.append(score)
         if score > best_score:
             best_w = w
             best_score = score
+        print(LEARNING_RATE)
         print(f"EP: {str(e)} Score: {str(score)}")
+    return episode_rewards, best_w, best_score
+
+
+def get_model_contingent(learn_model, linear_softmax_policy, env_name, env, N):
+    random_collector = 'random'
+    linear_collector = 'linear'
+    random_data_dynamics_model = f'{env_name}_dynamics_{random_collector}policy_N{N}.sav'
+    linear_data_dynamics_model = f'{env_name}_dynamics_{linear_collector}policy_N{N}.sav'
+    random_data_collected = exists(random_data_dynamics_model)
+    linear_data_collected = exists(linear_data_dynamics_model)
+    random_policy_file = f"{random_data_dynamics_model}_trained_policy.sav"
+    linear_policy_trained = exists(random_policy_file)
+    linear_policy_file = f"{linear_data_dynamics_model}_trained_policy.sav"
+
+    if linear_data_collected:
+        print("Loading linear-trained dynamics model")
+        w = np.random.rand(env.observation_space.shape[0], env.action_space.n)
+        model = pickle.load(open(linear_data_dynamics_model, 'wb'))
+        policy_file = linear_policy_file
+    elif linear_policy_trained:
+        print("Training dynamics with linear policy")
+        w = pickle.load(open(random_policy_file, 'rb'))
+        model = learn_model(env, linear_softmax_policy, w, N)
+        pickle.dump(model, open(linear_data_dynamics_model, 'wb'))
+        policy_file = linear_policy_file
+    elif random_data_collected:
+        print("Loading random-trained dynamics model")
+        w = np.random.rand(env.observation_space.shape[0], env.action_space.n)
+        model = pickle.load(open(random_data_dynamics_model, 'rb'))
+        policy_file = random_policy_file
+    else:
+        print("Training dynamics with random policy")
+        w = np.random.rand(env.observation_space.shape[0], env.action_space.n)
+        model = learn_model(env, linear_softmax_policy, w, N)
+        pickle.dump(model, open(random_data_dynamics_model, 'wb'))
+        policy_file = random_policy_file
+
+    return policy_file, w, model
+
+
+if __name__ == "__main__":
+    gym.envs.register(
+        id='FiveBarPendulum-v0',
+        entry_point='five_bar_env:FiveBarEnv',
+        kwargs={}
+    )
+    # env_name = 'CartPole-v0'
+    env_name = 'FiveBarPendulum-v0'
+
+    env = gym.make(env_name)
+    np.random.seed(6)
+
+    N = 201
+    policy_file, w, model = get_model_contingent(
+        learn_model, linear_softmax_policy, env_name, env, N)
+
+    # Learning Code Here
+    # REINFORCE
+
+    start = time.time()
+    NUM_EPISODES = 20
+    LEARNING_RATE = 0.0003
+    GAMMA = 0.99
+    episode_rewards, best_w, best_score = reinforce(
+        linear_softmax_policy, w, softmax_grad, env, model, NUM_EPISODES, LEARNING_RATE, GAMMA)
 
     print((best_score, best_w))
+    pickle.dump(best_w, open(policy_file, 'wb'))
     import matplotlib.pyplot as plt
     plt.plot(np.arange(NUM_EPISODES), episode_rewards)
-    plt.show()
+    # plt.show()
     # Wrapup code
     print(f"Time passed: {time.time()-start}")
     env.reset()
