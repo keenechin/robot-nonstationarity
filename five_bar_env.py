@@ -8,17 +8,13 @@ import numpy as np
 
 class FiveBarEnv(gym.Env):
     def __init__(self):
-        self.camera = RealsenseCamera(viewport=[250, 85, 272, 172])
+        self.camera = RealsenseCamera(visualize=False, viewport=[311, 173, 237, 150])
         self.camera.start()
         self.hardware = FiveBar()
         self.action_space = spaces.Discrete(9)
         self.observation_space = spaces.Box(
-            low=np.array([0, 0,
-                          0, 0, 0, 0,
-                          -np.pi, -np.pi, -np.pi, -np.pi]),
-            high=np.array([2*np.pi, 2*np.pi,
-                           1, 1, 1, 1,
-                           np.pi, np.pi, np.pi, np.pi]),
+            low=np.array([0, 0, -np.pi, -2*np.pi]),
+            high=np.array([2*np.pi, 2*np.pi, np.pi, 2*np.pi]),
             dtype=np.float64
         )
         self.stationaryid = self.hardware.stationaryid
@@ -29,6 +25,7 @@ class FiveBarEnv(gym.Env):
     def _get_obs(self):
         x_servo = self.hardware.get_pos()
         success, x_pndlm = self.camera.feed.get()
+
         if success:
             state = [*x_servo, *x_pndlm]
         else:
@@ -45,9 +42,8 @@ class FiveBarEnv(gym.Env):
         self.hardware.drift(pos)
 
     def cost(self, state):
-        angle_from_goal = np.arctan2(
-            [state[4] - state[2]], [state[5] - state[3]])
-        return 1*np.abs(angle_from_goal[0])
+
+        return 1*np.abs(state[2])
 
     def reset(self):
         self.hardware.reset()

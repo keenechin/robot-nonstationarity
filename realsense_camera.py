@@ -1,4 +1,3 @@
-from operator import pos
 import pyrealsense2 as rs
 import cv2
 from multiprocessing import Process, Queue
@@ -12,8 +11,6 @@ from queue import Empty
 class RealsenseCamera():
     def __init__(self, mode="Detection", visualize=True, viewport=[311, 173, 237, 150]):
         self.viewport = viewport
-        self.width = viewport[2]
-        self.height = viewport[3]
         camera = rs.pipeline()
         self.config = rs.config()
         self.config.enable_stream(rs.stream.depth)
@@ -142,7 +139,6 @@ class RealsenseCamera():
                     x2 = np.round(keypoints[1].pt[0], 1)/self.width
                     y2 = np.round(keypoints[1].pt[1], 1)/self.height
                     positions = [x1, y1, x2, y2]
-                    velocities = [0, 0, 0, 0]
 
                     if last_positions is not None:
                         last_x1 = last_positions[0]
@@ -153,12 +149,16 @@ class RealsenseCamera():
                         if trans_dist < cis_dist:
                             positions = [x2, y2, x1, y1]
 
-                        velocities = [positions[i]-last_positions[i]
-                                      for i in range(len(positions))]
+                        theta = np.arctan2(
+                            positions[3] - positions[1], positions[2] - positions[0])
+                        last_theta = np.arctan2(
+                            last_positions[3] - last_positions[1], last_positions[2] - last_positions[0])
+                        theta_dot = theta - last_theta
+
+                        state = np.around([theta, theta_dot], decimals=4)
+                        queue.put((True, state))
 
                     last_positions = positions
-                    state = np.around([*positions, *velocities], decimals=4)
-                    queue.put((True, state))
 
                     if visualize:
                         im_with_keypoints = cv2.drawKeypoints(original, keypoints, np.array(
