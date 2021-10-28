@@ -35,15 +35,14 @@ class FiveBarEnv(gym.Env):
     def step(self, u):
         self.hardware.primitive(u)
         state = self._get_obs()
-        costs = self.cost(state)
-        return state, -costs, False, {}
+        reward = self.reward(state)
+        return state, reward, False, {}
 
     def drift(self, pos):
         self.hardware.drift(pos)
 
-    def cost(self, state):
-
-        return 1*np.abs(state[2])
+    def reward(self, state):
+        return (np.abs(state[2]) - np.pi)**2
 
     def reset(self):
         self.hardware.reset()
