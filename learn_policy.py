@@ -57,6 +57,7 @@ def softmax_grad(softmax):
 
 
 def reinforce(policy, w, softmax_grad, env, model, NUM_EPISODES, LEARNING_RATE, LR_FINAL, GAMMA):
+    print("Starting RL on trained dynamics model.")
     r = LR_FINAL ** (1/NUM_EPISODES)
     nA = env.action_space.n
     episode_rewards = []
@@ -96,8 +97,8 @@ def reinforce(policy, w, softmax_grad, env, model, NUM_EPISODES, LEARNING_RATE, 
         if score > best_score:
             best_w = w
             best_score = score
-        print(LEARNING_RATE)
-        print(f"EP: {str(e)} Score: {str(score)}")
+        # print(LEARNING_RATE)
+        print(f"Episode: {str(e)} Score: {str(score)}")
     return episode_rewards, best_w, best_score
 
 
@@ -151,28 +152,32 @@ if __name__ == "__main__":
 
     env = gym.make(env_name)
     np.random.seed(6)
+    for i in range(8):
+        N = 1000 * 5**(int(i/2))
+        start = time.time()
+        print(f"Collecting {N} samples.")
+        policy_file, w, model = get_model_contingent(
+            learn_model, linear_softmax_policy, env_name, env, N)
+        print(f"Time passed to collect {N} samples: {(time.time()-start)/60.0} minutes")
 
-    N = 100
-    policy_file, w, model = get_model_contingent(
-        learn_model, linear_softmax_policy, env_name, env, N)
+        # Learning Code Here
+        # REINFORCE
 
-    # Learning Code Here
-    # REINFORCE
+        start = time.time()
+        NUM_EPISODES = 100
+        LEARNING_RATE = 0.0001
+        LR_FINAL = 0.2
+        GAMMA = 0.99
+        episode_rewards, best_w, best_score = reinforce(
+            linear_softmax_policy, w, softmax_grad, env, model, NUM_EPISODES, LEARNING_RATE, LR_FINAL, GAMMA)
 
-    start = time.time()
-    NUM_EPISODES = 20
-    LEARNING_RATE = 0.0001
-    LR_FINAL = 0.2
-    GAMMA = 0.99
-    episode_rewards, best_w, best_score = reinforce(
-        linear_softmax_policy, w, softmax_grad, env, model, NUM_EPISODES, LEARNING_RATE, LR_FINAL, GAMMA)
+        # print((best_score, best_w))
+        pickle.dump(best_w, open(policy_file, 'wb'))
+        # import matplotlib.pyplot as plt
+        # plt.plot(np.arange(NUM_EPISODES), episode_rewards)
+        # plt.show()
+        # Wrapup code
+        print(f"Time passed for {NUM_EPISODES} RL Episodes: {(time.time()-start)/60} minutes")
+        env.reset()
 
-    print((best_score, best_w))
-    pickle.dump(best_w, open(policy_file, 'wb'))
-    import matplotlib.pyplot as plt
-    plt.plot(np.arange(NUM_EPISODES), episode_rewards)
-    # plt.show()
-    # Wrapup code
-    print(f"Time passed: {time.time()-start}")
-    env.reset()
     env.camera.__del__()
