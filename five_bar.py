@@ -80,7 +80,7 @@ class FiveBar():
         curr = self.servos.get_pos(self.servos.motor_id)
         return curr
 
-    def primitive(self, id, mag=1.5 * np.pi, verbose=False, mode=2):
+    def primitive(self, id, mag=1.5 * np.pi, verbose=False, mode=1):
 
         if mode == 1:
             primitives = [[-mag, -mag],
@@ -94,7 +94,7 @@ class FiveBar():
                           [mag, mag]]
 
             self.move_delta(*primitives[id], verbose=verbose)
-            time.sleep(0.025)
+            time.sleep(0.05)
         if mode == 2:
             primitives = [[self.theta1_min, self.theta2_min],
                           [self.theta1_min, self.theta2_mid],
