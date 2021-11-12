@@ -8,6 +8,17 @@ class Fingers():
         self.servos = dxl(motor_id=ids, motor_type=motor_type,
                           devicename=device, baudrate=baudrate, protocol=protocol)
         self.servos.open_port()
+        self.reset()
+
+    def reset(self):
+        default = np.array([np.pi] * 7)
+        self.servos.set_des_pos(self.servos.motor_id, default)
+
+        err_thresh = 0.05
+        errs = np.array([np.inf] * 7)
+        while np.any(errs > err_thresh):
+            curr = self.get_pos()
+            errs = np.abs(curr - default)
         self.servos.engage_motor([50], False)
 
     def move(self, pos1, pos2, pos3, pos4, pos5, pos6, err_thresh=0.1):
@@ -28,6 +39,7 @@ i = 0
 while True:
     pos = manipulator.get_pos()
     print(pos)
-    manipulator.move(*[np.pi + 0.2 * np.cos(np.pi * i/10)]*6)
+    trange = np.pi/4
+    manipulator.move(*[np.pi -trange/2 + trange * np.random.random_sample()]*6)
     i = i + 1
     
